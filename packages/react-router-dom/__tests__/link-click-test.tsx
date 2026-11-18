@@ -96,7 +96,95 @@ describe("A <Link> click", () => {
     expect(h1?.textContent).toEqual("About");
   });
 
+  it("navigates to the new page when using a same-origin URL with mixed leading separators", () => {
+    for (let to of [
+      "\\\\localhost/about",
+      "/\\localhost/about",
+      "\\/localhost/about",
+    ]) {
+      let container = document.createElement("div");
+      node.appendChild(container);
+
+      function Home() {
+        return (
+          <div>
+            <h1>Home</h1>
+            <Link to={to}>About</Link>
+          </div>
+        );
+      }
+
+      let root = ReactDOM.createRoot(container);
+      act(() => {
+        root.render(
+          <MemoryRouter initialEntries={["/home"]}>
+            <Routes>
+              <Route path="home" element={<Home />} />
+              <Route path="about" element={<h1>About</h1>} />
+            </Routes>
+          </MemoryRouter>
+        );
+      });
+
+      let anchor = container.querySelector("a");
+      expect(anchor).not.toBeNull();
+
+      let event: MouseEvent;
+      act(() => {
+        event = click(anchor);
+      });
+
+      expect(event.defaultPrevented).toBe(true);
+      let h1 = container.querySelector("h1");
+      expect(h1).not.toBeNull();
+      expect(h1?.textContent).toEqual("About");
+
+      act(() => root.unmount());
+    }
+  });
+
   describe("when an external absolute URL is specified", () => {
+    it("does not prevent default for mixed leading separators", () => {
+      // Browsers resolve these as protocol-relative URLs to another origin, so
+      // they must not be handled as in-app paths via client-side navigation
+      for (let to of ["\\\\remix.run", "/\\remix.run", "\\/remix.run"]) {
+        let container = document.createElement("div");
+        node.appendChild(container);
+
+        function Home() {
+          return (
+            <div>
+              <h1>Home</h1>
+              <Link to={to}>About</Link>
+            </div>
+          );
+        }
+
+        let root = ReactDOM.createRoot(container);
+        act(() => {
+          root.render(
+            <MemoryRouter initialEntries={["/home"]}>
+              <Routes>
+                <Route path="home" element={<Home />} />
+              </Routes>
+            </MemoryRouter>
+          );
+        });
+
+        let anchor = container.querySelector("a");
+        expect(anchor).not.toBeNull();
+
+        let event: MouseEvent;
+        act(() => {
+          event = click(anchor);
+        });
+
+        expect(event.defaultPrevented).toBe(false);
+
+        act(() => root.unmount());
+      }
+    });
+
     it("does not prevent default", () => {
       function Home() {
         return (

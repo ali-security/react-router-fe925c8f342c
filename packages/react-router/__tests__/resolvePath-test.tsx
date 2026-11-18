@@ -31,6 +31,43 @@ describe("resolvePath", () => {
     });
   });
 
+  it("normalizes mixed leading separators", () => {
+    expect(resolvePath("//foo")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("\\\\foo")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("/\\foo")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("\\/foo")).toMatchObject({
+      pathname: "/foo",
+    });
+  });
+
+  it("normalizes mixed leading separators produced by relative paths", () => {
+    expect(resolvePath("\\foo", "/")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("../\\foo", "/inbox")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("./../\\foo", "/inbox")).toMatchObject({
+      pathname: "/foo",
+    });
+
+    expect(resolvePath("?q=react", "//foo")).toMatchObject({
+      pathname: "/foo",
+      search: "?q=react",
+    });
+  });
+
   it('uses the "from" pathname when the "to" value has no pathname', () => {
     expect(resolvePath("?q=react", "/search")).toMatchObject({
       pathname: "/search",

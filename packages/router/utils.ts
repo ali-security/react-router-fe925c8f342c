@@ -1089,6 +1089,8 @@ export function resolvePath(to: To, fromPathname = "/"): Path {
     hash = "",
   } = typeof to === "string" ? parsePath(to) : to;
 
+  if (toPathname) toPathname = removeLeadingDoubleSlashes(toPathname);
+
   let pathname = toPathname
     ? toPathname.startsWith("/")
       ? toPathname
@@ -1096,7 +1098,7 @@ export function resolvePath(to: To, fromPathname = "/"): Path {
     : fromPathname;
 
   return {
-    pathname,
+    pathname: removeLeadingDoubleSlashes(pathname),
     search: normalizeSearch(search),
     hash: normalizeHash(hash),
   };
@@ -1282,7 +1284,12 @@ export function getToPathname(to: To): string | undefined {
 }
 
 export const removeDoubleSlashes = (path: string): string =>
-  path.replace(/\/\/+/g, "/");
+  path.replace(/[\\/]{2,}/g, "/");
+
+// Browsers resolve leading mixed separators (`//`, `\\`, `/\`, `\/`) as a
+// protocol-relative URL, so collapse them to keep the path on this origin
+const removeLeadingDoubleSlashes = (path: string): string =>
+  path.replace(/^[\\/]{2,}/, "/");
 
 /**
  * @private

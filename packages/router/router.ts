@@ -717,7 +717,8 @@ export const IDLE_BLOCKER: BlockerUnblocked = {
   location: undefined,
 };
 
-const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|[\\/]{2})/i;
+const PROTOCOL_RELATIVE_URL_REGEX = /^[\\/]{2}/;
 
 const defaultMapRouteProperties: MapRoutePropertiesFunction = (route) => ({
   hasErrorBoundary: Boolean(route.hasErrorBoundary),
@@ -4453,8 +4454,8 @@ function normalizeRedirectLocation(
   if (ABSOLUTE_URL_REGEX.test(location)) {
     // Strip off the protocol+origin for same-origin + same-basename absolute redirects
     let normalizedLocation = location;
-    let url = normalizedLocation.startsWith("//")
-      ? new URL(currentUrl.protocol + normalizedLocation)
+    let url = PROTOCOL_RELATIVE_URL_REGEX.test(normalizedLocation)
+      ? new URL(currentUrl.protocol + normalizedLocation.replace(/\\/g, "/"))
       : new URL(normalizedLocation);
     let isSameBasename = stripBasename(url.pathname, basename) != null;
     if (url.origin === currentUrl.origin && isSameBasename) {

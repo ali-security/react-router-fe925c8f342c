@@ -129,6 +129,27 @@ describe("<Link> href", () => {
       expect(renderer.root.findByType("a").props.href).toEqual("//remix.run");
     });
 
+    test("<Link to> with mixed leading separators is treated as external link", () => {
+      // Browsers resolve these as protocol-relative URLs
+      for (let to of ["\\\\remix.run", "/\\remix.run", "\\/remix.run"]) {
+        let renderer: TestRenderer.ReactTestRenderer;
+        TestRenderer.act(() => {
+          renderer = TestRenderer.create(
+            <MemoryRouter initialEntries={["/inbox/messages"]}>
+              <Routes>
+                <Route path="inbox">
+                  <Route path="messages" element={<Link to={to} />} />
+                </Route>
+              </Routes>
+            </MemoryRouter>
+          );
+        });
+
+        // @ts-expect-error
+        expect(renderer.root.findByType("a").props.href).toEqual(to);
+      }
+    });
+
     test('<Link to="mailto:remix@example.com"> is treated as external link', () => {
       let renderer: TestRenderer.ReactTestRenderer;
       TestRenderer.act(() => {

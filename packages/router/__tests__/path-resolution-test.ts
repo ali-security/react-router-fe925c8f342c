@@ -541,4 +541,33 @@ describe("path resolution", () => {
     expect(createPath(router.state.location)).toBe("/base/path?c=3");
     expect(router.state.matches[0].route.path).toBe("/path");
   });
+
+  it("normalizes mixed leading separators in navigations", () => {
+    let router = createRouter({
+      routes: [
+        {
+          path: "/",
+          children: [{ path: "foo" }, { path: "bar" }],
+        },
+      ],
+      history: createMemoryHistory({ initialEntries: ["/bar"] }),
+    }).initialize();
+
+    // Browsers resolve these leading separators as protocol-relative URLs
+    for (let to of [
+      "//foo",
+      "\\\\foo",
+      "/\\foo",
+      "\\/foo",
+      "../\\foo",
+      "./../\\foo",
+    ]) {
+      router.navigate(to);
+      expect(router.state.location.pathname).toBe("/foo");
+      expect(router.state.matches[1].route.path).toBe("foo");
+      router.navigate("/bar");
+    }
+
+    router.dispose();
+  });
 });
