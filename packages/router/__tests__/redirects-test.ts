@@ -487,6 +487,123 @@ describe("redirects", () => {
     expect(t.window.location.replace).not.toHaveBeenCalled();
   });
 
+  describe("same-origin absolute URLs with double slashes in the path", () => {
+    // Same-origin redirects whose pathname starts with `//` must not be
+    // reinterpreted as protocol-relative URLs pointing to an external origin
+    let urls = [
+      "http://localhost//evil.com",
+      "http://localhost///evil.com",
+      "http://localhost/\\evil.com",
+      "//localhost//evil.com",
+    ];
+
+    function expectNoOpenRedirect(t: ReturnType<typeof setup>) {
+      expect(t.window.location.assign).not.toHaveBeenCalled();
+      expect(t.window.location.replace).not.toHaveBeenCalled();
+      expect(t.router.state.location.pathname).toBe("/evil.com");
+      expect(t.history.location.pathname).toBe("/evil.com");
+    }
+
+    it("normalizes double slashes in navigation action redirects (push)", async () => {
+      for (let url of urls) {
+        let t = setup({ routes: REDIRECT_ROUTES });
+
+        let A = await t.navigate("/parent/child", {
+          formMethod: "post",
+          formData: createFormData({}),
+        });
+
+        await A.actions.child.redirectReturn(url);
+        expectNoOpenRedirect(t);
+      }
+    });
+
+    it("normalizes double slashes in navigation action redirects (replace)", async () => {
+      for (let url of urls) {
+        let t = setup({ routes: REDIRECT_ROUTES });
+
+        let A = await t.navigate("/parent/child", {
+          formMethod: "post",
+          formData: createFormData({}),
+          replace: true,
+        });
+
+        await A.actions.child.redirectReturn(url);
+        expectNoOpenRedirect(t);
+      }
+    });
+
+    it("normalizes double slashes in navigation loader redirects", async () => {
+      for (let url of urls) {
+        let t = setup({ routes: REDIRECT_ROUTES });
+
+        let A = await t.navigate("/parent");
+
+        await A.loaders.parent.redirectReturn(url);
+        expectNoOpenRedirect(t);
+      }
+    });
+
+    it("normalizes double slashes in fetcher action redirects", async () => {
+      for (let url of urls) {
+        let t = setup({ routes: REDIRECT_ROUTES });
+
+        let A = await t.fetch("/parent/child", {
+          formMethod: "post",
+          formData: createFormData({}),
+        });
+
+        await A.actions.child.redirectReturn(url);
+        expectNoOpenRedirect(t);
+      }
+    });
+
+    it("normalizes double slashes in fetcher loader redirects", async () => {
+      for (let url of urls) {
+        let t = setup({ routes: REDIRECT_ROUTES });
+
+        let A = await t.fetch("/parent", "key");
+
+        await A.loaders.parent.redirectReturn(url);
+        expectNoOpenRedirect(t);
+      }
+    });
+
+    it("preserves query and hash when normalizing double slashes", async () => {
+      let t = setup({ routes: REDIRECT_ROUTES });
+
+      let A = await t.navigate("/parent/child", {
+        formMethod: "post",
+        formData: createFormData({}),
+      });
+
+      let B = await A.actions.child.redirectReturn(
+        "http://localhost//parent?key=value#hash",
+        undefined,
+        undefined,
+        ["parent"]
+      );
+      await B.loaders.parent.resolve("PARENT");
+      expect(t.window.location.assign).not.toHaveBeenCalled();
+      expect(t.window.location.replace).not.toHaveBeenCalled();
+      expect(t.router.state).toMatchObject({
+        location: {
+          pathname: "/parent",
+          search: "?key=value",
+          hash: "#hash",
+          state: {
+            _isRedirect: true,
+          },
+        },
+        navigation: IDLE_NAVIGATION,
+        loaderData: {
+          parent: "PARENT",
+        },
+        errors: null,
+      });
+    });
+  });
+
   it("automatically replaces in the history stack if you redirect to the same location (root relative)", async () => {
     let t = setup({ routes: REDIRECT_ROUTES });
 

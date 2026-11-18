@@ -47,6 +47,7 @@ import {
   isRouteErrorResponse,
   joinPaths,
   matchRoutes,
+  removeDoubleSlashes,
   resolveTo,
   stripBasename,
 } from "./utils";
@@ -4457,7 +4458,7 @@ function normalizeRedirectLocation(
       : new URL(normalizedLocation);
     let isSameBasename = stripBasename(url.pathname, basename) != null;
     if (url.origin === currentUrl.origin && isSameBasename) {
-      return url.pathname + url.search + url.hash;
+      return removeDoubleSlashes(url.pathname) + url.search + url.hash;
     }
   }
   return location;
